@@ -1,7 +1,7 @@
 use std::net::UdpSocket;
 
 fn create_socket() -> std::io::Result<UdpSocket> {
-    UdpSocket::bind("127.0.0.1:8080")
+    UdpSocket::bind(shared::SERVER_ADDR)
 }
 
 fn handle_socket(socket: UdpSocket) {
