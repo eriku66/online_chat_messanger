@@ -5,7 +5,7 @@ fn create_socket() -> std::io::Result<UdpSocket> {
 }
 
 fn handle_socket(socket: UdpSocket) {
-    let mut buf = [0; 4096];
+    let mut buf = [0; shared::MAX_MESSAGE_SIZE_BYTES];
     match socket.recv_from(&mut buf) {
         Ok((received, client_socket_addr)) => {
             println!("Received {} bytes", received);
