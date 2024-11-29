@@ -1,22 +1,28 @@
+use anyhow::Result;
+use shared::UserName;
 use std::net::UdpSocket;
 
-fn main() {
+fn prompt_user_name() -> String {
     println!("Please enter your name:");
 
     let mut user_name = String::new();
     std::io::stdin().read_line(&mut user_name).unwrap();
 
-    if user_name.as_bytes().len() > shared::MAX_USER_NAME_SIZE_BYTES {
-        eprintln!(
-            "User name must be less than or equal to {} bytes",
-            shared::MAX_USER_NAME_SIZE_BYTES
-        );
+    user_name
+}
 
-        return;
-    }
+fn get_user_name() -> Result<UserName> {
+    UserName::new(prompt_user_name())
+}
+
+fn main() {
+    let user_name = get_user_name().unwrap_or_else(|e| {
+        eprintln!("{}", e);
+        std::process::exit(1);
+    });
 
     let socket = UdpSocket::bind("127.0.0.1:0").unwrap();
     socket
-        .send_to(user_name.as_bytes(), shared::SERVER_ADDR)
+        .send_to(user_name.value().as_bytes(), shared::SERVER_ADDR)
         .unwrap();
 }
