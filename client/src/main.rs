@@ -1,5 +1,5 @@
 use anyhow::Result;
-use shared::UserName;
+use shared::{Message, UdpMessagePacket, UserName};
 use std::net::UdpSocket;
 
 fn prompt_user_name() -> String {
@@ -11,12 +11,24 @@ fn prompt_user_name() -> String {
     user_name
 }
 
+fn prompt_message() -> String {
+    println!("Please enter your message:");
+
+    let mut user_name = String::new();
+    std::io::stdin().read_line(&mut user_name).unwrap();
+
+    user_name
+}
+
 fn main() -> Result<()> {
-    let user_name = UserName::new(prompt_user_name())?;
+    let message_packet = UdpMessagePacket::new(
+        UserName::new(prompt_user_name())?,
+        Message::new(prompt_message())?,
+    );
 
     let socket = UdpSocket::bind("127.0.0.1:0").unwrap();
     socket
-        .send_to(user_name.value().as_bytes(), shared::SERVER_ADDR)
+        .send_to(&message_packet.generate_packet(), shared::SERVER_ADDR)
         .unwrap();
 
     Ok(())

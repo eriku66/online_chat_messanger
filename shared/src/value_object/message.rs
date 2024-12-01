@@ -1,20 +1,20 @@
-use crate::MAX_USER_NAME_SIZE_BYTES;
+use crate::MAX_MESSAGE_SIZE_BYTES;
 use anyhow::{anyhow, Result};
 
 #[derive(Debug)]
-pub struct UserName {
+pub struct Message {
     length: usize,
     value: String,
 }
 
-impl UserName {
-    pub fn new(value: String) -> Result<Self> {
-        let trimmed_value = value.trim();
+impl Message {
+    pub fn new(trimmed_value: String) -> Result<Self> {
+        let trimmed_value = trimmed_value.trim();
 
-        if trimmed_value.as_bytes().len() > MAX_USER_NAME_SIZE_BYTES {
+        if trimmed_value.as_bytes().len() > MAX_MESSAGE_SIZE_BYTES {
             return Err(anyhow!(
-                "User name must be less than or equal to {} bytes",
-                MAX_USER_NAME_SIZE_BYTES
+                "Message must be less than or equal to {} bytes",
+                MAX_MESSAGE_SIZE_BYTES
             ));
         }
 
@@ -25,7 +25,7 @@ impl UserName {
     }
 
     pub fn length(&self) -> usize {
-        self.value.len()
+        self.length
     }
 
     pub fn value(&self) -> &str {

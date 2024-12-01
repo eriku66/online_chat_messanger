@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use shared::UdpMessagePacket;
 use std::net::UdpSocket;
 
 fn create_socket() -> std::io::Result<UdpSocket> {
@@ -10,11 +11,10 @@ fn handle_socket(socket: UdpSocket) -> Result<()> {
     let (received, client_socket_addr) = socket
         .recv_from(&mut buf)
         .context("Failed to receive message")?;
-    println!("Received {} bytes", received);
-    println!("Client: {:?}", client_socket_addr);
+    println!("Client socket address: {:?}", client_socket_addr);
     println!(
-        "User name: {:?}",
-        String::from_utf8_lossy(&buf[..received]).trim()
+        "Packet: {:?}",
+        UdpMessagePacket::from_packet(&buf[..received])?,
     );
 
     Ok(())
