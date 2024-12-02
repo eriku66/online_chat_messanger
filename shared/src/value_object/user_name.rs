@@ -1,7 +1,7 @@
 use crate::MAX_USER_NAME_SIZE_BYTES;
 use anyhow::{anyhow, Result};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UserName {
     length: usize,
     value: String,
