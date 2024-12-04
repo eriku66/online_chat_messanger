@@ -1,5 +1,5 @@
 use anyhow::Result;
-use shared::{Message, UdpMessagePacket, UdpSessionStartPacket, UserName};
+use shared::{ClientSocket, Message, UdpMessagePacket, UdpSessionStartPacket, UserName};
 use std::net::UdpSocket;
 
 fn prompt_user_name() -> String {
@@ -21,7 +21,7 @@ fn prompt_message() -> String {
 }
 
 fn start_session(user_name: UserName) -> Result<UdpSocket> {
-    let socket = UdpSocket::bind("127.0.0.1:0").unwrap();
+    let socket = ClientSocket::new()?.socket;
 
     socket.send_to(
         &UdpSessionStartPacket::new(user_name).generate_packet(),
