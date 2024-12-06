@@ -25,7 +25,7 @@ impl UserName {
     }
 
     pub fn length(&self) -> usize {
-        self.value.len()
+        self.length
     }
 
     pub fn value(&self) -> &str {
