@@ -1,6 +1,5 @@
 use anyhow::Result;
-use shared::{ClientSocket, Message, UdpMessagePacket, UdpSessionStartPacket, UserName};
-use std::net::UdpSocket;
+use shared::{ClientSocket, Message, UdpMessagePacket, UserName, UserSession};
 
 fn prompt_user_name() -> String {
     println!("Please enter your name:");
@@ -20,30 +19,27 @@ fn prompt_message() -> String {
     message
 }
 
-fn start_session(user_name: UserName) -> Result<UdpSocket> {
-    let socket = ClientSocket::new()?.socket;
+fn start_session() -> Result<UserSession> {
+    let user_name = UserName::new(prompt_user_name())?;
+    let session = UserSession::new(ClientSocket::new()?, user_name);
 
-    socket.send_to(
-        &UdpSessionStartPacket::new(user_name).generate_packet(),
-        shared::SERVER_ADDR,
-    )?;
+    session.start()?;
 
-    Ok(socket)
+    Ok(session)
 }
 
 fn main() -> Result<()> {
-    let user_name = UserName::new(prompt_user_name())?;
-
-    let socket = start_session(user_name.clone())?;
+    let session = start_session()?;
 
     loop {
         let message = Message::new(prompt_message())?;
 
-        let message_packet = UdpMessagePacket::new(user_name.clone(), message);
+        let message_packet = UdpMessagePacket::new(session.user_name().clone(), message);
 
         println!("Sending message: {:?}", message_packet);
 
-        socket
+        session
+            .client_socket()
             .send_to(&message_packet.generate_packet(), shared::SERVER_ADDR)
             .unwrap();
     }
