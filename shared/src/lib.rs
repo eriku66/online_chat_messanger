@@ -2,6 +2,7 @@ mod consts;
 
 mod session {
     pub mod user_session;
+    pub mod user_session_list;
 }
 
 mod socket {
@@ -10,7 +11,6 @@ mod socket {
 
 mod protocol {
     pub mod udp_message_packet;
-    pub mod udp_session_start_packet;
 }
 
 mod value_object {
@@ -20,8 +20,8 @@ mod value_object {
 
 pub use consts::*;
 pub use protocol::udp_message_packet::UdpMessagePacket;
-pub use protocol::udp_session_start_packet::UdpSessionStartPacket;
 pub use session::user_session::UserSession;
+pub use session::user_session_list::UserSessionList;
 pub use socket::client_socket::ClientSocket;
 pub use value_object::message::Message;
 pub use value_object::user_name::UserName;

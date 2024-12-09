@@ -1,9 +1,5 @@
-use anyhow::Result;
-
 use crate::ClientSocket;
-use crate::UdpSessionStartPacket;
 use crate::UserName;
-use crate::SERVER_ADDR;
 
 #[derive(Debug)]
 pub struct UserSession {
@@ -17,13 +13,6 @@ impl UserSession {
             client_socket,
             user_name,
         }
-    }
-
-    pub fn start(&self) -> Result<()> {
-        let packet = UdpSessionStartPacket::new(self.user_name.clone()).generate_packet();
-        self.client_socket.send_to(&packet, SERVER_ADDR).unwrap();
-
-        Ok(())
     }
 
     pub fn client_socket(&self) -> &ClientSocket {

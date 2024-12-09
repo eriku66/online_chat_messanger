@@ -23,8 +23,6 @@ fn start_session() -> Result<UserSession> {
     let user_name = UserName::new(prompt_user_name())?;
     let session = UserSession::new(ClientSocket::new()?, user_name);
 
-    session.start()?;
-
     Ok(session)
 }
 
