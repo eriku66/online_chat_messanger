@@ -1,5 +1,8 @@
+mod user_session;
+
 use anyhow::Result;
-use shared::{ClientSocket, Message, UdpMessagePacket, UserName, UserSession};
+use shared::{ClientSocket, Message, UdpMessagePacket, UserName};
+use user_session::UserSession;
 
 fn prompt_user_name() -> String {
     println!("Please enter your name:");
@@ -21,7 +24,7 @@ fn prompt_message() -> String {
 
 fn start_session() -> Result<UserSession> {
     let user_name = UserName::new(prompt_user_name())?;
-    let session = UserSession::new(ClientSocket::new()?, user_name);
+    let session = UserSession::new(ClientSocket::new()?.socket, user_name);
 
     Ok(session)
 }
