@@ -1,5 +1,5 @@
 use crate::UserName;
-use std::net::{SocketAddr, UdpSocket};
+use std::net::UdpSocket;
 
 #[derive(Debug)]
 pub struct UserSession {
@@ -13,13 +13,5 @@ impl UserSession {
             client_socket,
             user_name,
         }
-    }
-
-    pub fn client_socket(&self) -> &UdpSocket {
-        &self.client_socket
-    }
-
-    pub fn user_name(&self) -> &UserName {
-        &self.user_name
     }
 }

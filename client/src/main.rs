@@ -35,12 +35,12 @@ fn main() -> Result<()> {
     loop {
         let message = Message::new(prompt_message())?;
 
-        let message_packet = UdpMessagePacket::new(session.user_name().clone(), message);
+        let message_packet = UdpMessagePacket::new(session.user_name.clone(), message);
 
         println!("Sending message: {:?}", message_packet);
 
         session
-            .client_socket()
+            .client_socket
             .send_to(&message_packet.generate_packet(), shared::SERVER_ADDR)
             .unwrap();
     }

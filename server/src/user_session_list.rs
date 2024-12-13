@@ -1,12 +1,13 @@
+use super::user_session::UserSession;
 use std::net::SocketAddr;
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct UserSessionList {
-    pub list: Vec<SocketAddr>,
+    pub list: Vec<UserSession>,
 }
 
 impl UserSessionList {
     pub fn add(&mut self, client_socket_address: SocketAddr) {
-        self.list.push(client_socket_address);
+        self.list.push(UserSession::new(client_socket_address));
     }
 }

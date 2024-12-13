@@ -1,3 +1,4 @@
+mod user_session;
 mod user_session_list;
 
 use anyhow::{Context, Result};
@@ -18,12 +19,12 @@ fn handle_socket(socket: UdpSocket) -> Result<()> {
             .recv_from(&mut buf)
             .context("Failed to receive message")?;
         println!("Client socket address: {:?}", client_socket_addr);
-        println!(
-            "Packet: {:?}",
-            UdpMessagePacket::from_packet(&buf[..received])?,
-        );
+        let udp_message_packet = UdpMessagePacket::from_packet(&buf[..received])?;
+        println!("Packet: {:?}", udp_message_packet);
 
         user_session_list.add(client_socket_addr);
+
+        println!("User session list: {:?}", user_session_list);
     }
 }
 
