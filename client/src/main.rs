@@ -43,5 +43,14 @@ fn main() -> Result<()> {
             .client_socket
             .send_to(&message_packet.generate_packet(), shared::SERVER_ADDR)
             .unwrap();
+
+        let mut buf = [0; shared::MAX_MESSAGE_SIZE_BYTES];
+
+        let (received, _) = session.client_socket.recv_from(&mut buf).unwrap();
+
+        println!(
+            "Received message: {:?}",
+            String::from_utf8_lossy(&buf[..received]).to_string().trim()
+        );
     }
 }

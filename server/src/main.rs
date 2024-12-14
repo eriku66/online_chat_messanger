@@ -23,8 +23,13 @@ fn handle_socket(socket: UdpSocket) -> Result<()> {
         println!("Packet: {:?}", udp_message_packet);
 
         user_session_list.add(client_socket_addr);
-
         println!("User session list: {:?}", user_session_list);
+
+        user_session_list.send_to_all(
+            &socket,
+            udp_message_packet.message.value().as_bytes(),
+            client_socket_addr,
+        )?;
     }
 }
 
