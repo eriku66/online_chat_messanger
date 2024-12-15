@@ -18,11 +18,13 @@ fn handle_socket(socket: UdpSocket) -> Result<()> {
         let (received, client_socket_addr) = socket
             .recv_from(&mut buf)
             .context("Failed to receive message")?;
-        println!("Client socket address: {:?}", client_socket_addr);
-        let udp_message_packet = UdpMessagePacket::from_packet(&buf[..received])?;
-        println!("Packet: {:?}", udp_message_packet);
 
-        user_session_list.add(client_socket_addr);
+        let udp_message_packet = UdpMessagePacket::from_packet(&buf[..received])?;
+
+        user_session_list.add_or_update(client_socket_addr);
+
+        user_session_list.cleanup();
+
         println!("User session list: {:?}", user_session_list);
 
         user_session_list.send_to_all(
