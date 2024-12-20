@@ -8,17 +8,8 @@ use shared::{Message, UdpMessagePacket, UserName};
 use std::sync::Arc;
 use user_session::UserSession;
 
-fn prompt_user_name() -> String {
-    println!("{}", prompts::USER_NAME_PROMPT);
-
-    let mut user_name = String::new();
-    std::io::stdin().read_line(&mut user_name).unwrap();
-
-    user_name
-}
-
-fn prompt_message() -> String {
-    println!("{}", prompts::MESSAGE_PROMPT);
+fn prompt(message_prompt: &str) -> String {
+    println!("{}", message_prompt);
 
     let mut message = String::new();
     std::io::stdin().read_line(&mut message).unwrap();
@@ -35,7 +26,7 @@ async fn receive_message(session: &UserSession) -> Result<String> {
 }
 
 async fn send_message(session: &UserSession) -> Result<()> {
-    let message = Message::new(prompt_message())?;
+    let message = Message::new(prompt(prompts::MESSAGE_PROMPT))?;
 
     let message_packet = UdpMessagePacket::new(session.user_name.clone(), message);
 
@@ -48,7 +39,7 @@ async fn send_message(session: &UserSession) -> Result<()> {
 }
 
 fn start_session() -> Result<UserSession> {
-    let user_name = UserName::new(prompt_user_name())?;
+    let user_name = UserName::new(prompt(prompts::USER_NAME_PROMPT))?;
     let session = UserSession::new(ClientSocket::new()?, user_name);
 
     Ok(session)
