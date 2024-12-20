@@ -4,8 +4,10 @@ mod user_session;
 
 use anyhow::Result;
 use client_socket::ClientSocket;
-use shared::{Message, UdpMessagePacket, UserName};
-use std::sync::Arc;
+use shared::{
+    Message, OperationState, OperationType, RoomName, TcpChatRoomPacket, UdpMessagePacket, UserName,
+};
+use std::{io::Write, net::TcpStream, sync::Arc};
 use user_session::UserSession;
 
 fn prompt(message_prompt: &str) -> String {
@@ -45,8 +47,23 @@ fn start_session() -> Result<UserSession> {
     Ok(session)
 }
 
+fn join_chat_room() -> Result<()> {
+    let mut tcp_stream = TcpStream::connect(shared::SERVER_ADDR)?;
+    let room_name = RoomName::new(prompt(prompts::ROOM_NAME_PROMPT))?;
+    let chat_room_packet = TcpChatRoomPacket::new(
+        room_name,
+        OperationType::CreateChatRoom,
+        OperationState::Request,
+    );
+
+    tcp_stream.write_all(&chat_room_packet.generate_packet())?;
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
+    join_chat_room()?;
     let session = Arc::new(start_session()?);
 
     let send_session = session.clone();

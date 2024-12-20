@@ -2,8 +2,11 @@ mod user_session;
 mod user_session_list;
 
 use anyhow::{Context, Result};
-use shared::UdpMessagePacket;
-use std::net::UdpSocket;
+use shared::{TcpChatRoomPacket, UdpMessagePacket};
+use std::{
+    io::Read,
+    net::{TcpListener, UdpSocket},
+};
 use user_session_list::UserSessionList;
 
 fn create_socket() -> std::io::Result<UdpSocket> {
@@ -11,6 +14,14 @@ fn create_socket() -> std::io::Result<UdpSocket> {
 }
 
 fn handle_socket(socket: UdpSocket) -> Result<()> {
+    let tcp_listener = TcpListener::bind(shared::SERVER_ADDR)?;
+    let (mut tcp_stream, client_tcp_socket_addr) = tcp_listener.accept()?;
+    let mut buf = [0; shared::MAX_MESSAGE_SIZE_BYTES];
+    let received = tcp_stream.read(&mut buf)?;
+    let tcp_chat_room_packet = TcpChatRoomPacket::from_packet(&buf[..received])?;
+    println!("tcp_chat_room_packet: {:?}", tcp_chat_room_packet);
+    println!("client_tcp_socket_addr: {:?}", client_tcp_socket_addr);
+
     let mut user_session_list = UserSessionList::default();
 
     loop {

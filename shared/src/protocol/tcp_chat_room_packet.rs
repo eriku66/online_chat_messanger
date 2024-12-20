@@ -3,6 +3,7 @@ use num_traits::FromPrimitive;
 
 use crate::{OperationState, OperationType, RoomName};
 
+#[derive(Debug)]
 pub struct TcpChatRoomPacket {
     pub room_name: RoomName,
     pub operation_type: OperationType,
