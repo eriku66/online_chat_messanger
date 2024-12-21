@@ -48,8 +48,6 @@ fn start_session() -> Result<UserSession> {
 }
 
 fn join_chat_room() -> Result<()> {
-    let mut tcp_stream = TcpStream::connect(shared::SERVER_ADDR)?;
-
     let room_name = RoomName::new(prompt(prompts::ROOM_NAME_PROMPT))?;
     let operation_type = OperationType::from_u8(
         prompt(prompts::CREATE_OR_JOIN_PROMPT)
@@ -62,7 +60,7 @@ fn join_chat_room() -> Result<()> {
     let chat_room_packet =
         TcpChatRoomPacket::new(room_name, operation_type, OperationState::Request);
 
-    tcp_stream.write_all(&chat_room_packet.generate_packet())?;
+    TcpStream::connect(shared::SERVER_ADDR)?.write_all(&chat_room_packet.generate_packet())?;
 
     Ok(())
 }
