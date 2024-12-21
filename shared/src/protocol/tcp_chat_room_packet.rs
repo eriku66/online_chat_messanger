@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-use num_traits::FromPrimitive;
 
 use crate::{OperationState, OperationType, RoomName};
 

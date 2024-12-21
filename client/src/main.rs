@@ -2,7 +2,7 @@ mod client_socket;
 mod prompts;
 mod user_session;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use client_socket::ClientSocket;
 use shared::{
     Message, OperationState, OperationType, RoomName, TcpChatRoomPacket, UdpMessagePacket, UserName,
@@ -49,12 +49,18 @@ fn start_session() -> Result<UserSession> {
 
 fn join_chat_room() -> Result<()> {
     let mut tcp_stream = TcpStream::connect(shared::SERVER_ADDR)?;
+
     let room_name = RoomName::new(prompt(prompts::ROOM_NAME_PROMPT))?;
-    let chat_room_packet = TcpChatRoomPacket::new(
-        room_name,
-        OperationType::CreateChatRoom,
-        OperationState::Request,
-    );
+    let operation_type = OperationType::from_u8(
+        prompt(prompts::CREATE_OR_JOIN_PROMPT)
+            .trim()
+            .parse::<u8>()
+            .context("Input must be a number")?,
+    )
+    .context("Invalid operation type")?;
+
+    let chat_room_packet =
+        TcpChatRoomPacket::new(room_name, operation_type, OperationState::Request);
 
     tcp_stream.write_all(&chat_room_packet.generate_packet())?;
 
