@@ -1,6 +1,6 @@
+use crate::{OperationPayload, OperationState, OperationType, RoomName};
 use anyhow::{Context, Result};
-
-use crate::{OperationState, OperationType, RoomName};
+use std::{io::Read, net::TcpStream};
 
 #[derive(Debug)]
 pub struct TcpChatRoomPacket {
@@ -10,6 +10,11 @@ pub struct TcpChatRoomPacket {
 }
 
 impl TcpChatRoomPacket {
+    const MAX_BYTES: usize = RoomName::HEADER_LENGTH_BYTES
+        + OperationType::HEADER_LENGTH_BYTES
+        + OperationState::HEADER_LENGTH_BYTES
+        + OperationPayload::HEADER_LENGTH_BYTES;
+
     pub fn new(room_name: RoomName, operation_type: OperationType, state: OperationState) -> Self {
         Self {
             room_name,
@@ -29,16 +34,25 @@ impl TcpChatRoomPacket {
         packet
     }
 
-    pub fn from_packet(packet: &[u8]) -> Result<Self> {
-        let _room_name_length = u8::from_be_bytes([packet[0]]) as usize;
+    pub fn from_tcp_stream(tcp_stream: &mut TcpStream) -> Result<Self> {
+        let mut buf = [0; Self::MAX_BYTES];
+        let received = tcp_stream
+            .read(&mut buf)
+            .context("Failed to read from TCP stream")?;
+
+        let packet = &buf[..received];
+
+        let room_name_length = u8::from_be_bytes([packet[0]]) as usize;
         let operation_type = OperationType::from_u8(u8::from_be_bytes([packet[1]]))
             .context("Invalid operation type")?;
         let state =
             OperationState::from_u8(u8::from_be_bytes([packet[2]])).context("Invalid state")?;
-        let room_name = String::from_utf8_lossy(&packet[3..]).to_string();
+        let body = String::from_utf8_lossy(&packet[3..]).to_string();
+
+        let (room_name, _) = body.split_at(room_name_length);
 
         Ok(Self {
-            room_name: RoomName::new(room_name).unwrap(),
+            room_name: RoomName::new(room_name.to_string()).unwrap(),
             operation_type,
             state,
         })

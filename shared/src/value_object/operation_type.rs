@@ -8,6 +8,8 @@ pub enum OperationType {
 }
 
 impl OperationType {
+    pub const HEADER_LENGTH_BYTES: usize = 1;
+
     pub fn from_u8(value: u8) -> Option<Self> {
         FromPrimitive::from_u8(value)
     }
