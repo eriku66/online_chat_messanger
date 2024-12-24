@@ -1,21 +1,25 @@
-use crate::{OperationPayload, OperationState, OperationType, RoomName};
+use crate::{ChatRoomName, OperationPayload, OperationState, OperationType};
 use anyhow::{Context, Result};
 use std::{io::Read, net::TcpStream};
 
 #[derive(Debug)]
 pub struct TcpChatRoomPacket {
-    pub room_name: RoomName,
+    pub room_name: ChatRoomName,
     pub operation_type: OperationType,
     pub state: OperationState,
 }
 
 impl TcpChatRoomPacket {
-    const MAX_BYTES: usize = RoomName::HEADER_LENGTH_BYTES
+    const MAX_BYTES: usize = ChatRoomName::HEADER_LENGTH_BYTES
         + OperationType::HEADER_LENGTH_BYTES
         + OperationState::HEADER_LENGTH_BYTES
         + OperationPayload::HEADER_LENGTH_BYTES;
 
-    pub fn new(room_name: RoomName, operation_type: OperationType, state: OperationState) -> Self {
+    pub fn new(
+        room_name: ChatRoomName,
+        operation_type: OperationType,
+        state: OperationState,
+    ) -> Self {
         Self {
             room_name,
             operation_type,
@@ -49,10 +53,10 @@ impl TcpChatRoomPacket {
             OperationState::from_u8(u8::from_be_bytes([packet[2]])).context("Invalid state")?;
         let body = String::from_utf8_lossy(&packet[3..]).to_string();
 
-        let (room_name, _) = body.split_at(room_name_length);
+        let (room_name, _operation_payload) = body.split_at(room_name_length);
 
         Ok(Self {
-            room_name: RoomName::new(room_name.to_string()).unwrap(),
+            room_name: ChatRoomName::new(room_name.to_string()).unwrap(),
             operation_type,
             state,
         })

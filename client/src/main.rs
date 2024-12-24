@@ -5,7 +5,8 @@ mod user_session;
 use anyhow::{Context, Result};
 use client_socket::ClientSocket;
 use shared::{
-    Message, OperationState, OperationType, RoomName, TcpChatRoomPacket, UdpMessagePacket, UserName,
+    ChatRoomName, Message, OperationState, OperationType, TcpChatRoomPacket, UdpMessagePacket,
+    UserName,
 };
 use std::{io::Write, net::TcpStream, sync::Arc};
 use user_session::UserSession;
@@ -48,7 +49,7 @@ fn start_session() -> Result<UserSession> {
 }
 
 fn join_chat_room() -> Result<()> {
-    let room_name = RoomName::new(prompt(prompts::ROOM_NAME_PROMPT))?;
+    let room_name = ChatRoomName::new(prompt(prompts::ROOM_NAME_PROMPT))?;
     let operation_type = OperationType::from_u8(
         prompt(prompts::CREATE_OR_JOIN_PROMPT)
             .trim()

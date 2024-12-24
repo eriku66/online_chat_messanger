@@ -1,7 +1,10 @@
+mod chat_room;
+mod chat_room_list;
 mod user_session;
 mod user_session_list;
 
 use anyhow::{Context, Result};
+use chat_room_list::ChatRoomList;
 use shared::{TcpChatRoomPacket, UdpMessagePacket};
 use std::net::{TcpListener, UdpSocket};
 use user_session_list::UserSessionList;
@@ -38,11 +41,22 @@ fn handle_socket(socket: UdpSocket) -> Result<()> {
 fn start_server() -> Result<()> {
     let tcp_listener = TcpListener::bind(shared::SERVER_ADDR)?;
 
+    let mut chat_room_list = ChatRoomList::default();
+
     loop {
         let (mut tcp_stream, client_tcp_socket_addr) = tcp_listener.accept()?;
         let tcp_chat_room_packet = TcpChatRoomPacket::from_tcp_stream(&mut tcp_stream)?;
         println!("tcp_chat_room_packet: {:?}", tcp_chat_room_packet);
         println!("client_tcp_socket_addr: {:?}", client_tcp_socket_addr);
+
+        match tcp_chat_room_packet.operation_type {
+            shared::OperationType::CreateChatRoom => {
+                chat_room_list.create(tcp_chat_room_packet.room_name.clone());
+            }
+            shared::OperationType::JoinChatRoom => {
+                chat_room_list.join(tcp_chat_room_packet.room_name.clone());
+            }
+        }
     }
 
     let socket = create_socket()?;

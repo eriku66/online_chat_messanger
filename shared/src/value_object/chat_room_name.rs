@@ -1,12 +1,12 @@
 use anyhow::{anyhow, Result};
 
-#[derive(Debug, Clone)]
-pub struct RoomName {
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ChatRoomName {
     length: usize,
     value: String,
 }
 
-impl RoomName {
+impl ChatRoomName {
     pub const HEADER_LENGTH_BYTES: usize = 1;
     pub const MAX_LENGTH: usize = 255;
     pub const MAX_TOTAL_BYTES: usize = Self::HEADER_LENGTH_BYTES + Self::MAX_LENGTH;

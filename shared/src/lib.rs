@@ -6,11 +6,11 @@ mod protocol {
 }
 
 mod value_object {
+    pub mod chat_room_name;
     pub mod message;
     pub mod operation_payload;
     pub mod operation_state;
     pub mod operation_type;
-    pub mod room_name;
     pub mod socket_type;
     pub mod user_name;
 }
@@ -18,10 +18,10 @@ mod value_object {
 pub use consts::*;
 pub use protocol::tcp_chat_room_packet::TcpChatRoomPacket;
 pub use protocol::udp_message_packet::UdpMessagePacket;
+pub use value_object::chat_room_name::ChatRoomName;
 pub use value_object::message::Message;
 pub use value_object::operation_payload::OperationPayload;
 pub use value_object::operation_state::OperationState;
 pub use value_object::operation_type::OperationType;
-pub use value_object::room_name::RoomName;
 pub use value_object::socket_type::SocketType;
 pub use value_object::user_name::UserName;
