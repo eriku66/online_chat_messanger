@@ -7,6 +7,7 @@ pub struct TcpChatRoomPacket {
     pub room_name: ChatRoomName,
     pub operation_type: OperationType,
     pub state: OperationState,
+    pub operation_payload: Option<OperationPayload>,
 }
 
 impl TcpChatRoomPacket {
@@ -19,11 +20,13 @@ impl TcpChatRoomPacket {
         room_name: ChatRoomName,
         operation_type: OperationType,
         state: OperationState,
+        operation_payload: Option<OperationPayload>,
     ) -> Self {
         Self {
             room_name,
             operation_type,
             state,
+            operation_payload,
         }
     }
 
@@ -34,6 +37,11 @@ impl TcpChatRoomPacket {
         packet.push(self.operation_type as u8);
         packet.push(self.state as u8);
         packet.extend_from_slice(self.room_name.value().as_bytes());
+        packet.extend_from_slice(
+            serde_json::to_string(&self.operation_payload)
+                .unwrap()
+                .as_bytes(),
+        );
 
         packet
     }
@@ -46,6 +54,8 @@ impl TcpChatRoomPacket {
 
         let packet = &buf[..received];
 
+        println!("packet: {:?}", packet);
+
         let room_name_length = u8::from_be_bytes([packet[0]]) as usize;
         let operation_type = OperationType::from_u8(u8::from_be_bytes([packet[1]]))
             .context("Invalid operation type")?;
@@ -53,12 +63,13 @@ impl TcpChatRoomPacket {
             OperationState::from_u8(u8::from_be_bytes([packet[2]])).context("Invalid state")?;
         let body = String::from_utf8_lossy(&packet[3..]).to_string();
 
-        let (room_name, _operation_payload) = body.split_at(room_name_length);
+        let (room_name, operation_payload) = body.split_at(room_name_length);
 
         Ok(Self {
-            room_name: ChatRoomName::new(room_name.to_string()).unwrap(),
+            room_name: ChatRoomName::new(room_name.to_string())?,
             operation_type,
             state,
+            operation_payload: serde_json::from_str(operation_payload).ok(),
         })
     }
 }

@@ -1,14 +1,22 @@
 mod client_socket;
+mod consts;
 mod prompts;
 mod user_session;
 
 use anyhow::{Context, Result};
 use client_socket::ClientSocket;
+use consts::CLIENT_ADDR;
 use shared::{
     ChatRoomName, Message, OperationState, OperationType, TcpChatRoomPacket, UdpMessagePacket,
     UserName,
 };
-use std::{io::Write, net::TcpStream, sync::Arc};
+use std::{
+    io::Write,
+    net::{TcpListener, TcpStream},
+    process::exit,
+    sync::Arc,
+};
+use tokio::net::tcp;
 use user_session::UserSession;
 
 fn prompt(message_prompt: &str) -> String {
@@ -59,9 +67,20 @@ fn join_chat_room() -> Result<()> {
     .context("Invalid operation type")?;
 
     let chat_room_packet =
-        TcpChatRoomPacket::new(room_name, operation_type, OperationState::Request);
+        TcpChatRoomPacket::new(room_name, operation_type, OperationState::Request, None);
 
-    TcpStream::connect(shared::SERVER_ADDR)?.write_all(&chat_room_packet.generate_packet())?;
+    let mut tcp_stream = TcpStream::connect(shared::SERVER_ADDR)?;
+    tcp_stream.write_all(&chat_room_packet.generate_packet())?;
+
+    let tcp_listener = TcpListener::bind(tcp_stream.local_addr()?)?;
+
+    let (mut server_tcp_stream, _) = tcp_listener.accept()?;
+
+    let response_packet = TcpChatRoomPacket::from_tcp_stream(&mut server_tcp_stream)?;
+
+    println!("Response packet: {:?}", response_packet);
+
+    exit(0);
 
     Ok(())
 }

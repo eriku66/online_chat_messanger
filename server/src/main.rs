@@ -1,12 +1,16 @@
 mod chat_room;
 mod chat_room_list;
+mod chat_room_service;
 mod user_session;
 mod user_session_list;
 
 use anyhow::{Context, Result};
-use chat_room_list::ChatRoomList;
-use shared::{TcpChatRoomPacket, UdpMessagePacket};
-use std::net::{TcpListener, UdpSocket};
+use chat_room_service::ChatRoomService;
+use shared::{OperationPayload, ResponseStatus, TcpChatRoomPacket, UdpMessagePacket};
+use std::{
+    io::Write,
+    net::{TcpListener, TcpStream, UdpSocket},
+};
 use user_session_list::UserSessionList;
 
 fn create_socket() -> std::io::Result<UdpSocket> {
@@ -41,22 +45,34 @@ fn handle_socket(socket: UdpSocket) -> Result<()> {
 fn start_server() -> Result<()> {
     let tcp_listener = TcpListener::bind(shared::SERVER_ADDR)?;
 
-    let mut chat_room_list = ChatRoomList::default();
+    let mut chat_room_service = ChatRoomService::new();
 
     loop {
-        let (mut tcp_stream, client_tcp_socket_addr) = tcp_listener.accept()?;
-        let tcp_chat_room_packet = TcpChatRoomPacket::from_tcp_stream(&mut tcp_stream)?;
+        let (mut client_tcp_stream, client_tcp_socket_addr) = tcp_listener.accept()?;
+
+        let tcp_chat_room_packet = TcpChatRoomPacket::from_tcp_stream(&mut client_tcp_stream)?;
+
         println!("tcp_chat_room_packet: {:?}", tcp_chat_room_packet);
         println!("client_tcp_socket_addr: {:?}", client_tcp_socket_addr);
 
-        match tcp_chat_room_packet.operation_type {
-            shared::OperationType::CreateChatRoom => {
-                chat_room_list.create(tcp_chat_room_packet.room_name.clone());
-            }
-            shared::OperationType::JoinChatRoom => {
-                chat_room_list.join(tcp_chat_room_packet.room_name.clone());
-            }
-        }
+        let mut server_tcp_stream = TcpStream::connect(client_tcp_socket_addr)?;
+
+        if chat_room_service
+            .handle_chat_room_packet(&tcp_chat_room_packet)
+            .is_err()
+        {
+            continue;
+        };
+
+        server_tcp_stream.write_all(
+            &TcpChatRoomPacket::new(
+                tcp_chat_room_packet.room_name,
+                tcp_chat_room_packet.operation_type,
+                shared::OperationState::ReceiveResponse,
+                Some(OperationPayload::new(ResponseStatus::Ok, None)),
+            )
+            .generate_packet(),
+        )?;
     }
 
     let socket = create_socket()?;

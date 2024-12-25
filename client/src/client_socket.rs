@@ -3,6 +3,8 @@ use std::net::UdpSocket;
 use anyhow::Result;
 use tokio::net::UdpSocket as TokioUdpSocket;
 
+use crate::consts::CLIENT_ADDR;
+
 #[derive(Debug)]
 pub struct ClientSocket {
     pub socket: TokioUdpSocket,
@@ -11,7 +13,7 @@ pub struct ClientSocket {
 impl ClientSocket {
     pub fn new() -> Result<Self> {
         Ok(Self {
-            socket: TokioUdpSocket::from_std(UdpSocket::bind("127.0.0.1:0")?)?,
+            socket: TokioUdpSocket::from_std(UdpSocket::bind(CLIENT_ADDR)?)?,
         })
     }
 
