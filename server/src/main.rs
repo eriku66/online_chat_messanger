@@ -9,7 +9,8 @@ use chat_room_service::ChatRoomService;
 use shared::{OperationPayload, ResponseStatus, TcpChatRoomPacket, UdpMessagePacket};
 use std::{
     io::Write,
-    net::{TcpListener, TcpStream, UdpSocket},
+    net::{TcpListener, UdpSocket},
+    thread::sleep,
 };
 use user_session_list::UserSessionList;
 
@@ -48,30 +49,52 @@ fn start_server() -> Result<()> {
     let mut chat_room_service = ChatRoomService::new();
 
     loop {
-        let (mut client_tcp_stream, client_tcp_socket_addr) = tcp_listener.accept()?;
+        let (mut tcp_stream, _client_tcp_socket_addr) = tcp_listener.accept()?;
 
-        let tcp_chat_room_packet = TcpChatRoomPacket::from_tcp_stream(&mut client_tcp_stream)?;
+        let tcp_chat_room_packet = TcpChatRoomPacket::from_tcp_stream(&mut tcp_stream)?;
 
         println!("tcp_chat_room_packet: {:?}", tcp_chat_room_packet);
-        println!("client_tcp_socket_addr: {:?}", client_tcp_socket_addr);
+        println!("client_tcp_socket_addr: {:?}", _client_tcp_socket_addr);
 
-        let mut server_tcp_stream = TcpStream::connect(client_tcp_socket_addr)?;
-
-        if chat_room_service
-            .handle_chat_room_packet(&tcp_chat_room_packet)
-            .is_err()
-        {
-            continue;
-        };
-
-        server_tcp_stream.write_all(
+        tcp_stream.write_all(
             &TcpChatRoomPacket::new(
-                tcp_chat_room_packet.room_name,
+                tcp_chat_room_packet.room_name.clone(),
                 tcp_chat_room_packet.operation_type,
                 shared::OperationState::ReceiveResponse,
                 Some(OperationPayload::new(ResponseStatus::Ok, None)),
             )
-            .generate_packet(),
+            .generate_bytes(),
+        )?;
+
+        sleep(std::time::Duration::from_secs(1));
+
+        if let Err(message) = chat_room_service.handle_chat_room_packet(&tcp_chat_room_packet) {
+            println!("Error: {}", message);
+
+            tcp_stream.write_all(
+                &TcpChatRoomPacket::new(
+                    tcp_chat_room_packet.room_name,
+                    tcp_chat_room_packet.operation_type,
+                    shared::OperationState::CompleteResponse,
+                    Some(OperationPayload::new(
+                        ResponseStatus::BadRequest,
+                        Some(message.to_string()),
+                    )),
+                )
+                .generate_bytes(),
+            )?;
+
+            continue;
+        };
+
+        tcp_stream.write_all(
+            &TcpChatRoomPacket::new(
+                tcp_chat_room_packet.room_name,
+                tcp_chat_room_packet.operation_type,
+                shared::OperationState::CompleteResponse,
+                Some(OperationPayload::new(ResponseStatus::Ok, None)),
+            )
+            .generate_bytes(),
         )?;
     }
 

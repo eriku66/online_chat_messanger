@@ -11,6 +11,7 @@ impl OperationType {
     pub const HEADER_LENGTH_BYTES: usize = 1;
 
     pub fn from_u8(value: u8) -> Option<Self> {
+        println!("value: {:?}", value);
         FromPrimitive::from_u8(value)
     }
 }

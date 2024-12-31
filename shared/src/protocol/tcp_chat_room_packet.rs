@@ -11,10 +11,10 @@ pub struct TcpChatRoomPacket {
 }
 
 impl TcpChatRoomPacket {
-    const MAX_BYTES: usize = ChatRoomName::HEADER_LENGTH_BYTES
+    pub const MAX_BYTES: usize = ChatRoomName::HEADER_LENGTH_BYTES
         + OperationType::HEADER_LENGTH_BYTES
         + OperationState::HEADER_LENGTH_BYTES
-        + OperationPayload::HEADER_LENGTH_BYTES;
+        + OperationPayload::MAX_TOTAL_BYTES;
 
     pub fn new(
         room_name: ChatRoomName,
@@ -30,7 +30,8 @@ impl TcpChatRoomPacket {
         }
     }
 
-    pub fn generate_packet(&self) -> Vec<u8> {
+    pub fn generate_bytes(&self) -> Vec<u8> {
+        println!("generate_bytes self: {:?}", self);
         let mut packet = Vec::new();
 
         packet.push(self.room_name.length() as u8);
@@ -42,6 +43,7 @@ impl TcpChatRoomPacket {
                 .unwrap()
                 .as_bytes(),
         );
+        println!("packet: {:?}", packet);
 
         packet
     }
@@ -52,10 +54,11 @@ impl TcpChatRoomPacket {
             .read(&mut buf)
             .context("Failed to read from TCP stream")?;
 
-        let packet = &buf[..received];
+        Self::from_bytes(&buf[..received])
+    }
 
+    pub fn from_bytes(packet: &[u8]) -> Result<Self> {
         println!("packet: {:?}", packet);
-
         let room_name_length = u8::from_be_bytes([packet[0]]) as usize;
         let operation_type = OperationType::from_u8(u8::from_be_bytes([packet[1]]))
             .context("Invalid operation type")?;

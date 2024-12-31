@@ -5,18 +5,16 @@ mod user_session;
 
 use anyhow::{Context, Result};
 use client_socket::ClientSocket;
-use consts::CLIENT_ADDR;
 use shared::{
     ChatRoomName, Message, OperationState, OperationType, TcpChatRoomPacket, UdpMessagePacket,
     UserName,
 };
 use std::{
-    io::Write,
+    io::{Read, Write},
     net::{TcpListener, TcpStream},
     process::exit,
     sync::Arc,
 };
-use tokio::net::tcp;
 use user_session::UserSession;
 
 fn prompt(message_prompt: &str) -> String {
@@ -70,13 +68,21 @@ fn join_chat_room() -> Result<()> {
         TcpChatRoomPacket::new(room_name, operation_type, OperationState::Request, None);
 
     let mut tcp_stream = TcpStream::connect(shared::SERVER_ADDR)?;
-    tcp_stream.write_all(&chat_room_packet.generate_packet())?;
+    tcp_stream.write_all(&chat_room_packet.generate_bytes())?;
 
-    let tcp_listener = TcpListener::bind(tcp_stream.local_addr()?)?;
+    let mut buf = [0; TcpChatRoomPacket::MAX_BYTES];
 
-    let (mut server_tcp_stream, _) = tcp_listener.accept()?;
+    let received = tcp_stream.read(&mut buf)?;
 
-    let response_packet = TcpChatRoomPacket::from_tcp_stream(&mut server_tcp_stream)?;
+    let response_packet = TcpChatRoomPacket::from_bytes(&buf[..received])?;
+
+    println!("Response packet: {:?}", response_packet);
+
+    let mut buf = [0; TcpChatRoomPacket::MAX_BYTES];
+
+    let received = tcp_stream.read(&mut buf)?;
+
+    let response_packet = TcpChatRoomPacket::from_bytes(&buf[..received])?;
 
     println!("Response packet: {:?}", response_packet);
 
