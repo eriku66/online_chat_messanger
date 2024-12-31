@@ -51,7 +51,7 @@ fn start_session() -> Result<UserSession> {
 
 fn join_chat_room() -> Result<()> {
     let room_name = ChatRoomName::new(prompt(prompts::ROOM_NAME_PROMPT))?;
-    let operation_type = OperationType::from_u8(
+    let operation_type = OperationType::try_from_u8(
         prompt(prompts::CREATE_OR_JOIN_PROMPT)
             .trim()
             .parse::<u8>()

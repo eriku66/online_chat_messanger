@@ -1,5 +1,5 @@
 use crate::{ChatRoomName, OperationPayload, OperationState, OperationType};
-use anyhow::{Context, Result};
+use anyhow::Result;
 
 #[derive(Debug)]
 pub struct TcpChatRoomPacket {
@@ -47,10 +47,8 @@ impl TcpChatRoomPacket {
 
     pub fn from_bytes(packet: &[u8]) -> Result<Self> {
         let room_name_length = u8::from_be_bytes([packet[0]]) as usize;
-        let operation_type = OperationType::from_u8(u8::from_be_bytes([packet[1]]))
-            .context("Invalid operation type")?;
-        let state =
-            OperationState::from_u8(u8::from_be_bytes([packet[2]])).context("Invalid state")?;
+        let operation_type = OperationType::try_from_u8(u8::from_be_bytes([packet[1]]))?;
+        let state = OperationState::try_from_u8(u8::from_be_bytes([packet[2]]))?;
         let body = String::from_utf8_lossy(&packet[3..]).to_string();
 
         let (room_name, operation_payload) = body.split_at(room_name_length);

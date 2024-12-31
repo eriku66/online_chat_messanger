@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Context, Result};
 use enum_primitive_derive::Primitive;
 use num_traits::FromPrimitive;
 
@@ -11,7 +12,9 @@ pub enum OperationState {
 impl OperationState {
     pub const HEADER_LENGTH_BYTES: usize = 1;
 
-    pub fn from_u8(value: u8) -> Option<Self> {
+    pub fn try_from_u8(value: u8) -> Result<Self> {
         FromPrimitive::from_u8(value)
+            .ok_or_else(|| anyhow!("Invalid operation state. value: {}", value))
+            .context("Failed to parse operation state")
     }
 }
