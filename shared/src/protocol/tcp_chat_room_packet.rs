@@ -1,6 +1,5 @@
 use crate::{ChatRoomName, OperationPayload, OperationState, OperationType};
 use anyhow::{Context, Result};
-use std::{io::Read, net::TcpStream};
 
 #[derive(Debug)]
 pub struct TcpChatRoomPacket {
@@ -46,15 +45,6 @@ impl TcpChatRoomPacket {
         println!("packet: {:?}", packet);
 
         packet
-    }
-
-    pub fn from_tcp_stream(tcp_stream: &mut TcpStream) -> Result<Self> {
-        let mut buf = [0; Self::MAX_BYTES];
-        let received = tcp_stream
-            .read(&mut buf)
-            .context("Failed to read from TCP stream")?;
-
-        Self::from_bytes(&buf[..received])
     }
 
     pub fn from_bytes(packet: &[u8]) -> Result<Self> {

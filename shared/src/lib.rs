@@ -16,7 +16,10 @@ mod value_object {
     pub mod user_name;
 }
 
+mod network;
+
 pub use consts::*;
+pub use network::*;
 pub use protocol::tcp_chat_room_packet::TcpChatRoomPacket;
 pub use protocol::udp_message_packet::UdpMessagePacket;
 pub use value_object::chat_room_name::ChatRoomName;
