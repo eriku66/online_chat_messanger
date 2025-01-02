@@ -1,6 +1,5 @@
-use std::net::SocketAddr;
-
 use crate::{user_session_list::UserSessionList, UserToken};
+use std::net::SocketAddr;
 
 #[derive(Debug)]
 pub struct ChatRoom {

@@ -1,7 +1,6 @@
+use super::user_session::UserSession;
 use anyhow::{anyhow, Result};
 use shared::{UserToken, SESSION_TIMEOUT_SECONDS};
-
-use super::user_session::UserSession;
 use std::{
     collections::HashMap,
     net::{SocketAddr, UdpSocket},

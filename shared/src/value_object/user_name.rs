@@ -1,7 +1,8 @@
 use crate::MAX_USER_NAME_SIZE_BYTES;
 use anyhow::{anyhow, Result};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserName {
     length: usize,
     value: String,

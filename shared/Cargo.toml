@@ -14,3 +14,4 @@ uuid = { version = "1.11.0", features = [
     "fast-rng",
     "macro-diagnostics",
 ] }
+derive_builder = "0.20.0"

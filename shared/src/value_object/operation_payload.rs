@@ -1,30 +1,22 @@
+use super::{UserName, UserToken};
+use crate::ResponseStatus;
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
-use crate::ResponseStatus;
-
-use super::UserToken;
-
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Builder)]
 pub struct OperationPayload {
-    status: ResponseStatus,
+    #[builder(setter(into, strip_option), default)]
+    status: Option<ResponseStatus>,
+    #[builder(setter(into, strip_option), default)]
     message: Option<String>,
+    #[builder(setter(into, strip_option), default)]
     user_token: Option<UserToken>,
+    #[builder(setter(into, strip_option), default)]
+    user_name: Option<UserName>,
 }
 
 impl OperationPayload {
     pub const HEADER_LENGTH_BYTES: usize = 15;
     pub const MAX_LENGTH: usize = 2usize.pow(Self::HEADER_LENGTH_BYTES as u32) - 1;
     pub const MAX_TOTAL_BYTES: usize = Self::HEADER_LENGTH_BYTES + Self::MAX_LENGTH;
-
-    pub fn new(
-        status: ResponseStatus,
-        message: Option<String>,
-        user_token: Option<UserToken>,
-    ) -> Self {
-        Self {
-            status,
-            message,
-            user_token,
-        }
-    }
 }

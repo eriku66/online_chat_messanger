@@ -9,7 +9,7 @@ use shared::{
     ChatRoomName, Message, OperationState, OperationType, TcpChatRoomPacket, TcpStreamWrapper,
     UdpMessagePacket, UserName,
 };
-use std::{net::TcpStream, process::exit, sync::Arc};
+use std::{net::TcpStream, sync::Arc};
 use user_session::UserSession;
 
 fn prompt(message_prompt: &str) -> String {

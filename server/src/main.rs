@@ -3,10 +3,12 @@ mod chat_room_list;
 mod chat_room_service;
 mod user_session;
 mod user_session_list;
-
 use anyhow::Result;
 use chat_room_service::ChatRoomService;
-use shared::{OperationPayload, ResponseStatus, TcpChatRoomPacket, TcpListenerWrapper, UserToken};
+use shared::{
+    operation_payload::OperationPayloadBuilder, ResponseStatus, TcpChatRoomPacket,
+    TcpListenerWrapper, UserToken,
+};
 use std::net::TcpListener;
 
 fn handle_tcp(chat_room_service: &mut ChatRoomService) -> Result<()> {
@@ -25,30 +27,33 @@ fn handle_tcp(chat_room_service: &mut ChatRoomService) -> Result<()> {
                 tcp_chat_room_packet.room_name.clone(),
                 tcp_chat_room_packet.operation_type,
                 shared::OperationState::ReceiveResponse,
-                Some(OperationPayload::new(ResponseStatus::Ok, None, None)),
+                Some(
+                    OperationPayloadBuilder::default()
+                        .status(ResponseStatus::Ok)
+                        .build()?,
+                ),
             )
             .generate_bytes(),
         )?;
 
         let user_token = UserToken::default();
 
-        if let Err(message) = chat_room_service.handle_chat_room_packet(
+        if let Err(error) = chat_room_service.handle_chat_room_packet(
             &tcp_chat_room_packet,
             user_token.clone(),
             socket_addr,
         ) {
-            println!("Error: {}", message);
-
             tcp_stream.write_all(
                 &TcpChatRoomPacket::new(
                     tcp_chat_room_packet.room_name,
                     tcp_chat_room_packet.operation_type,
                     shared::OperationState::CompleteResponse,
-                    Some(OperationPayload::new(
-                        ResponseStatus::BadRequest,
-                        Some(message.to_string()),
-                        None,
-                    )),
+                    Some(
+                        OperationPayloadBuilder::default()
+                            .status(ResponseStatus::BadRequest)
+                            .message(error.to_string())
+                            .build()?,
+                    ),
                 )
                 .generate_bytes(),
             )?;
@@ -61,11 +66,12 @@ fn handle_tcp(chat_room_service: &mut ChatRoomService) -> Result<()> {
                 tcp_chat_room_packet.room_name,
                 tcp_chat_room_packet.operation_type,
                 shared::OperationState::CompleteResponse,
-                Some(OperationPayload::new(
-                    ResponseStatus::Ok,
-                    None,
-                    Some(user_token),
-                )),
+                Some(
+                    OperationPayloadBuilder::default()
+                        .status(ResponseStatus::Ok)
+                        .user_token(user_token)
+                        .build()?,
+                ),
             )
             .generate_bytes(),
         )?;
