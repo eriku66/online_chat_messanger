@@ -1,4 +1,4 @@
-use std::net::TcpListener;
+use std::net::{SocketAddr, TcpListener};
 
 use super::TcpStreamWrapper;
 
@@ -11,8 +11,8 @@ impl TcpListenerWrapper {
         Self { tcp_listener }
     }
 
-    pub fn accept(&self) -> std::io::Result<TcpStreamWrapper> {
-        let (tcp_stream, _socket_addr) = self.tcp_listener.accept()?;
-        Ok(TcpStreamWrapper::new(tcp_stream))
+    pub fn accept(&self) -> std::io::Result<(TcpStreamWrapper, SocketAddr)> {
+        let (tcp_stream, socket_addr) = self.tcp_listener.accept()?;
+        Ok((TcpStreamWrapper::new(tcp_stream), socket_addr))
     }
 }

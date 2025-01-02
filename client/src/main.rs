@@ -66,17 +66,21 @@ fn join_chat_room() -> Result<()> {
 
     tcp_stream.write_all(&chat_room_packet.generate_bytes())?;
 
-    let response_packet =
+    let response_for_receiving_packet =
         TcpChatRoomPacket::from_bytes(&tcp_stream.read(TcpChatRoomPacket::MAX_BYTES)?)?;
 
-    println!("Response packet: {:?}", response_packet);
+    println!(
+        "Response for receive packet: {:?}",
+        response_for_receiving_packet
+    );
 
-    let response_packet =
+    let response_for_task_complete_packet =
         TcpChatRoomPacket::from_bytes(&tcp_stream.read(TcpChatRoomPacket::MAX_BYTES)?)?;
 
-    println!("Response packet: {:?}", response_packet);
-
-    exit(0);
+    println!(
+        "Response for task complete packet: {:?}",
+        response_for_task_complete_packet
+    );
 
     Ok(())
 }

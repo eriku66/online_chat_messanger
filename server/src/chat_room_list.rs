@@ -1,7 +1,7 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, net::SocketAddr};
 
 use anyhow::{anyhow, Result};
-use shared::ChatRoomName;
+use shared::{ChatRoomName, UserToken};
 
 use crate::chat_room::ChatRoom;
 
@@ -15,22 +15,33 @@ impl ChatRoomList {
         self.list.contains_key(chat_room_name)
     }
 
-    pub fn create(&mut self, chat_room_name: ChatRoomName) -> Result<()> {
+    pub fn create(
+        &mut self,
+        chat_room_name: ChatRoomName,
+        host_user_token: UserToken,
+        socket_addr: SocketAddr,
+    ) -> Result<()> {
         if self.exists(&chat_room_name) {
             return Err(anyhow!("Chat room already exists"));
         }
 
-        self.list.insert(chat_room_name, ChatRoom {});
+        let chat_room = ChatRoom::new(host_user_token, socket_addr);
+
+        self.list.insert(chat_room_name, chat_room);
 
         Ok(())
     }
 
-    pub fn join(&mut self, chat_room_name: ChatRoomName) -> Result<()> {
-        if !self.exists(&chat_room_name) {
-            return Err(anyhow!("Chat room does not exist"));
-        }
-
-        self.list.insert(chat_room_name.clone(), ChatRoom {});
+    pub fn join(
+        &mut self,
+        chat_room_name: ChatRoomName,
+        member_user_token: UserToken,
+        socket_addr: SocketAddr,
+    ) -> Result<()> {
+        self.list
+            .get_mut(&chat_room_name)
+            .ok_or_else(|| anyhow!("Chat room does not exist"))?
+            .add_member(member_user_token, socket_addr);
 
         Ok(())
     }

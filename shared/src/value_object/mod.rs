@@ -6,6 +6,7 @@ pub mod operation_type;
 pub mod response_status;
 pub mod socket_type;
 pub mod user_name;
+pub mod user_token;
 
 pub use chat_room_name::ChatRoomName;
 pub use message::Message;
@@ -15,3 +16,4 @@ pub use operation_type::OperationType;
 pub use response_status::ResponseStatus;
 pub use socket_type::SocketType;
 pub use user_name::UserName;
+pub use user_token::UserToken;

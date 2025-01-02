@@ -1,12 +1,17 @@
+use std::net::SocketAddr;
+use std::time::Instant;
+
 #[derive(Debug)]
 pub struct UserSession {
-    pub last_received_at: std::time::Instant,
+    pub socket_addr: SocketAddr,
+    pub last_received_at: Instant,
 }
 
 impl UserSession {
-    pub fn new() -> Self {
+    pub fn new(socket_addr: SocketAddr) -> Self {
         Self {
-            last_received_at: std::time::Instant::now(),
+            socket_addr,
+            last_received_at: Instant::now(),
         }
     }
 }
