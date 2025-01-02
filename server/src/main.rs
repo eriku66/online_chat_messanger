@@ -29,7 +29,7 @@ fn handle_tcp(chat_room_service: &mut ChatRoomService) -> Result<()> {
                 shared::OperationState::ReceiveResponse,
                 Some(
                     OperationPayloadBuilder::default()
-                        .status(ResponseStatus::Ok)
+                        .response_status(ResponseStatus::Ok)
                         .build()?,
                 ),
             )
@@ -50,7 +50,7 @@ fn handle_tcp(chat_room_service: &mut ChatRoomService) -> Result<()> {
                     shared::OperationState::CompleteResponse,
                     Some(
                         OperationPayloadBuilder::default()
-                            .status(ResponseStatus::BadRequest)
+                            .response_status(ResponseStatus::BadRequest)
                             .message(error.to_string())
                             .build()?,
                     ),
@@ -68,7 +68,7 @@ fn handle_tcp(chat_room_service: &mut ChatRoomService) -> Result<()> {
                 shared::OperationState::CompleteResponse,
                 Some(
                     OperationPayloadBuilder::default()
-                        .status(ResponseStatus::Ok)
+                        .response_status(ResponseStatus::Ok)
                         .user_token(user_token)
                         .build()?,
                 ),

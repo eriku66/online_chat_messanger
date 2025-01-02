@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, Builder)]
 pub struct OperationPayload {
     #[builder(setter(into, strip_option), default)]
-    status: Option<ResponseStatus>,
+    response_status: Option<ResponseStatus>,
     #[builder(setter(into, strip_option), default)]
     message: Option<String>,
     #[builder(setter(into, strip_option), default)]
