@@ -6,8 +6,8 @@ mod user_session;
 use anyhow::{Context, Result};
 use client_socket::ClientSocket;
 use shared::{
-    ChatRoomName, Message, OperationState, OperationType, TcpChatRoomPacket, TcpStreamWrapper,
-    UdpMessagePacket, UserName,
+    operation_payload::OperationPayloadBuilder, ChatRoomName, Message, OperationState,
+    OperationType, TcpChatRoomPacket, TcpStreamWrapper, UdpMessagePacket, UserName,
 };
 use std::{net::TcpStream, sync::Arc};
 use user_session::UserSession;
@@ -58,9 +58,18 @@ fn join_chat_room() -> Result<()> {
             .context("Input must be a number")?,
     )
     .context("Invalid operation type")?;
+    let user_name = UserName::new(prompt(prompts::USER_NAME_PROMPT))?;
 
-    let chat_room_packet =
-        TcpChatRoomPacket::new(room_name, operation_type, OperationState::Request, None);
+    let chat_room_packet = TcpChatRoomPacket::new(
+        room_name,
+        operation_type,
+        OperationState::Request,
+        Some(
+            OperationPayloadBuilder::default()
+                .user_name(user_name)
+                .build()?,
+        ),
+    );
 
     let mut tcp_stream = TcpStreamWrapper::new(TcpStream::connect(shared::SERVER_ADDR)?);
 

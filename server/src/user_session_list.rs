@@ -12,15 +12,14 @@ pub struct UserSessionList {
 }
 
 impl UserSessionList {
-    pub fn add_or_update(&mut self, user_token: UserToken, client_socket_address: SocketAddr) {
+    pub fn add_or_update(&mut self, user_token: UserToken, user_session: UserSession) {
         if let Some(user_session) = self.list.get_mut(&user_token) {
             user_session.last_received_at = std::time::Instant::now();
 
             return;
         }
 
-        self.list
-            .insert(user_token, UserSession::new(client_socket_address));
+        self.list.insert(user_token, user_session);
     }
 
     pub fn send_to_all(

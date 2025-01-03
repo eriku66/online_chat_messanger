@@ -17,15 +17,15 @@ fn handle_tcp(chat_room_service: &mut ChatRoomService) -> Result<()> {
     loop {
         let (mut tcp_stream, socket_addr) = tcp_listener.accept()?;
 
-        let tcp_chat_room_packet =
+        let request_to_join_packet =
             TcpChatRoomPacket::from_bytes(&tcp_stream.read(TcpChatRoomPacket::MAX_BYTES)?)?;
 
-        println!("tcp_chat_room_packet: {:?}", tcp_chat_room_packet);
+        println!("Request to join packet: {:?}", request_to_join_packet);
 
         tcp_stream.write_all(
             &TcpChatRoomPacket::new(
-                tcp_chat_room_packet.room_name.clone(),
-                tcp_chat_room_packet.operation_type,
+                request_to_join_packet.room_name.clone(),
+                request_to_join_packet.operation_type,
                 shared::OperationState::ReceiveResponse,
                 Some(
                     OperationPayloadBuilder::default()
@@ -38,15 +38,15 @@ fn handle_tcp(chat_room_service: &mut ChatRoomService) -> Result<()> {
 
         let user_token = UserToken::default();
 
-        if let Err(error) = chat_room_service.handle_chat_room_packet(
-            &tcp_chat_room_packet,
+        if let Err(error) = chat_room_service.handle_request_to_join_packet(
+            &request_to_join_packet,
             user_token.clone(),
             socket_addr,
         ) {
             tcp_stream.write_all(
                 &TcpChatRoomPacket::new(
-                    tcp_chat_room_packet.room_name,
-                    tcp_chat_room_packet.operation_type,
+                    request_to_join_packet.room_name,
+                    request_to_join_packet.operation_type,
                     shared::OperationState::CompleteResponse,
                     Some(
                         OperationPayloadBuilder::default()
@@ -63,8 +63,8 @@ fn handle_tcp(chat_room_service: &mut ChatRoomService) -> Result<()> {
 
         tcp_stream.write_all(
             &TcpChatRoomPacket::new(
-                tcp_chat_room_packet.room_name,
-                tcp_chat_room_packet.operation_type,
+                request_to_join_packet.room_name,
+                request_to_join_packet.operation_type,
                 shared::OperationState::CompleteResponse,
                 Some(
                     OperationPayloadBuilder::default()

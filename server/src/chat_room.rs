@@ -1,5 +1,4 @@
-use crate::{user_session_list::UserSessionList, UserToken};
-use std::net::SocketAddr;
+use crate::{user_session::UserSession, user_session_list::UserSessionList, UserToken};
 
 #[derive(Debug)]
 pub struct ChatRoom {
@@ -8,9 +7,9 @@ pub struct ChatRoom {
 }
 
 impl ChatRoom {
-    pub fn new(host_user_token: UserToken, socket_addr: SocketAddr) -> Self {
+    pub fn new_with_host(host_user_token: UserToken, host_user_session: UserSession) -> Self {
         let mut user_session_list = UserSessionList::default();
-        user_session_list.add_or_update(host_user_token.clone(), socket_addr);
+        user_session_list.add_or_update(host_user_token.clone(), host_user_session);
 
         Self {
             host_user_token,
@@ -18,8 +17,8 @@ impl ChatRoom {
         }
     }
 
-    pub fn add_member(&mut self, user_token: UserToken, socket_addr: SocketAddr) {
+    pub fn add_member(&mut self, user_token: UserToken, user_session: UserSession) {
         self.user_session_list
-            .add_or_update(user_token, socket_addr);
+            .add_or_update(user_token, user_session);
     }
 }

@@ -6,13 +6,13 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, Builder)]
 pub struct OperationPayload {
     #[builder(setter(into, strip_option), default)]
-    response_status: Option<ResponseStatus>,
+    pub response_status: Option<ResponseStatus>,
     #[builder(setter(into, strip_option), default)]
-    message: Option<String>,
+    pub message: Option<String>,
     #[builder(setter(into, strip_option), default)]
-    user_token: Option<UserToken>,
+    pub user_token: Option<UserToken>,
     #[builder(setter(into, strip_option), default)]
-    user_name: Option<UserName>,
+    pub user_name: Option<UserName>,
 }
 
 impl OperationPayload {
