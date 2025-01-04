@@ -3,11 +3,12 @@ mod consts;
 mod prompts;
 mod user_session;
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use client_socket::ClientSocket;
 use shared::{
     operation_payload::OperationPayloadBuilder, ChatRoomName, Message, OperationState,
-    OperationType, TcpChatRoomPacket, TcpStreamWrapper, UdpMessagePacket, UserName,
+    OperationType, ResponseStatus, TcpChatRoomPacket, TcpStreamWrapper, UdpMessagePacket, UserName,
+    UserToken,
 };
 use std::{net::TcpStream, sync::Arc};
 use user_session::UserSession;
@@ -49,7 +50,57 @@ fn start_session() -> Result<UserSession> {
     Ok(session)
 }
 
-fn join_chat_room() -> Result<()> {
+fn extract_user_token(response_for_task_complete: TcpChatRoomPacket) -> UserToken {
+    response_for_task_complete
+        .operation_payload
+        .unwrap()
+        .user_token
+        .unwrap()
+}
+
+fn validate_task_completion_response(response_for_task_complete: &TcpChatRoomPacket) -> Result<()> {
+    let response_for_task_complete_payload = response_for_task_complete
+        .operation_payload
+        .as_ref()
+        .ok_or_else(|| anyhow!("Response for task complete payload not found"))?;
+
+    if response_for_task_complete.state != OperationState::CompleteResponse {
+        return Err(anyhow::anyhow!("Operation state is not matching"));
+    }
+
+    if response_for_task_complete_payload.response_status != Some(ResponseStatus::Ok) {
+        if let Some(message) = &response_for_task_complete_payload.message {
+            return Err(anyhow::anyhow!("Error message: {}", message));
+        }
+
+        return Err(anyhow::anyhow!("Response status is not OK"));
+    }
+
+    if response_for_task_complete_payload.user_token.is_none() {
+        return Err(anyhow::anyhow!("User token not found"));
+    }
+
+    Ok(())
+}
+
+fn validate_receive_request_response(
+    response_for_receiving_request: &TcpChatRoomPacket,
+) -> Result<()> {
+    if !(response_for_receiving_request.state == OperationState::ReceiveResponse
+        && response_for_receiving_request
+            .operation_payload
+            .as_ref()
+            .ok_or_else(|| anyhow!("Response for receiving payload not found"))?
+            .response_status
+            == Some(ResponseStatus::Ok))
+    {
+        return Err(anyhow::anyhow!("Server rejected request"));
+    }
+
+    Ok(())
+}
+
+fn request_to_join_chat_room(tcp_stream: &mut TcpStreamWrapper) -> Result<()> {
     let room_name = ChatRoomName::new(prompt(prompts::ROOM_NAME_PROMPT))?;
     let operation_type = OperationType::try_from_u8(
         prompt(prompts::CREATE_OR_JOIN_PROMPT)
@@ -71,32 +122,43 @@ fn join_chat_room() -> Result<()> {
         ),
     );
 
-    let mut tcp_stream = TcpStreamWrapper::new(TcpStream::connect(shared::SERVER_ADDR)?);
-
     tcp_stream.write_all(&chat_room_packet.generate_bytes())?;
-
-    let response_for_receiving_packet =
-        TcpChatRoomPacket::from_bytes(&tcp_stream.read(TcpChatRoomPacket::MAX_BYTES)?)?;
-
-    println!(
-        "Response for receive packet: {:?}",
-        response_for_receiving_packet
-    );
-
-    let response_for_task_complete_packet =
-        TcpChatRoomPacket::from_bytes(&tcp_stream.read(TcpChatRoomPacket::MAX_BYTES)?)?;
-
-    println!(
-        "Response for task complete packet: {:?}",
-        response_for_task_complete_packet
-    );
 
     Ok(())
 }
 
+fn join_chat_room(tcp_stream: &mut TcpStreamWrapper) -> Result<UserToken> {
+    request_to_join_chat_room(tcp_stream)?;
+
+    let receiving_request_response =
+        TcpChatRoomPacket::from_bytes(&tcp_stream.read(TcpChatRoomPacket::MAX_BYTES)?)?;
+
+    validate_receive_request_response(&receiving_request_response)?;
+
+    let task_completion_response =
+        TcpChatRoomPacket::from_bytes(&tcp_stream.read(TcpChatRoomPacket::MAX_BYTES)?)?;
+
+    validate_task_completion_response(&task_completion_response)?;
+
+    Ok(extract_user_token(task_completion_response))
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
-    join_chat_room()?;
+    let mut tcp_stream = TcpStreamWrapper::new(TcpStream::connect(shared::SERVER_ADDR)?);
+
+    let user_token = join_chat_room(&mut tcp_stream).map_err(|join_chat_room_err| {
+        println!("Failed to join chat room: {:?}", join_chat_room_err);
+
+        let _ = tcp_stream.shutdown();
+
+        join_chat_room_err
+    })?;
+
+    println!("User token: {:?}", user_token);
+
+    let local_addr = tcp_stream.local_addr()?;
+
     let session = Arc::new(start_session()?);
 
     let send_session = session.clone();

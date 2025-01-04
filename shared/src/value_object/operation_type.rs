@@ -2,7 +2,7 @@ use anyhow::{anyhow, Context, Result};
 use enum_primitive_derive::Primitive;
 use num_traits::FromPrimitive;
 
-#[derive(Debug, Clone, Copy, Primitive)]
+#[derive(Debug, Clone, Copy, Primitive, PartialEq, Eq)]
 pub enum OperationType {
     CreateChatRoom = 1,
     JoinChatRoom = 2,
