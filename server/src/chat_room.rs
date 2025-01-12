@@ -3,7 +3,7 @@ use crate::{user_session::UserSession, user_session_list::UserSessionList, UserT
 #[derive(Debug)]
 pub struct ChatRoom {
     host_user_token: UserToken,
-    user_session_list: UserSessionList,
+    pub user_session_list: UserSessionList,
 }
 
 impl ChatRoom {

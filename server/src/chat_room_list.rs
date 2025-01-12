@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use shared::{ChatRoomName, UserToken};
 use std::collections::HashMap;
 
@@ -43,5 +43,9 @@ impl ChatRoomList {
             .add_member(member_user_token, user_session);
 
         Ok(())
+    }
+
+    pub fn get(&self, chat_room_name: &ChatRoomName) -> Result<&ChatRoom> {
+        self.list.get(chat_room_name).context("Chat room not found")
     }
 }

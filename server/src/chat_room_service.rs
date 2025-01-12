@@ -1,10 +1,10 @@
-use std::net::SocketAddr;
-
 use anyhow::{anyhow, Result};
 use shared::{TcpChatRoomPacket, UserToken};
+use std::net::SocketAddr;
 
 use crate::{chat_room_list::ChatRoomList, user_session::UserSession};
 
+#[derive(Debug)]
 pub struct ChatRoomService {
     pub chat_room_list: ChatRoomList,
 }

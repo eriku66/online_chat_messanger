@@ -1,5 +1,4 @@
 mod client_socket;
-mod consts;
 mod prompts;
 mod user_session;
 
@@ -33,21 +32,18 @@ async fn receive_message(session: &UserSession) -> Result<String> {
 async fn send_message(session: &UserSession) -> Result<()> {
     let message = Message::new(prompt(prompts::MESSAGE_PROMPT))?;
 
-    let message_packet = UdpMessagePacket::new(session.user_name.clone(), message);
+    let message_packet = UdpMessagePacket::new(
+        session.chat_room_name.clone(),
+        session.user_token.clone(),
+        message,
+    );
 
     session
         .client_socket
-        .send_to(&message_packet.generate_packet(), shared::SERVER_ADDR)
+        .send_to(&message_packet.generate_packet(), shared::SERVER_ADDR_UDP)
         .await?;
 
     Ok(())
-}
-
-fn start_session() -> Result<UserSession> {
-    let user_name = UserName::new(prompt(prompts::USER_NAME_PROMPT))?;
-    let session = UserSession::new(ClientSocket::new()?, user_name);
-
-    Ok(session)
 }
 
 fn extract_user_token(response_for_task_complete: TcpChatRoomPacket) -> UserToken {
@@ -100,8 +96,10 @@ fn validate_receive_request_response(
     Ok(())
 }
 
-fn request_to_join_chat_room(tcp_stream: &mut TcpStreamWrapper) -> Result<()> {
-    let room_name = ChatRoomName::new(prompt(prompts::ROOM_NAME_PROMPT))?;
+fn request_to_join_chat_room(
+    tcp_stream: &mut TcpStreamWrapper,
+    room_name: &ChatRoomName,
+) -> Result<()> {
     let operation_type = OperationType::try_from_u8(
         prompt(prompts::CREATE_OR_JOIN_PROMPT)
             .trim()
@@ -112,7 +110,7 @@ fn request_to_join_chat_room(tcp_stream: &mut TcpStreamWrapper) -> Result<()> {
     let user_name = UserName::new(prompt(prompts::USER_NAME_PROMPT))?;
 
     let chat_room_packet = TcpChatRoomPacket::new(
-        room_name,
+        room_name.clone(),
         operation_type,
         OperationState::Request,
         Some(
@@ -127,8 +125,11 @@ fn request_to_join_chat_room(tcp_stream: &mut TcpStreamWrapper) -> Result<()> {
     Ok(())
 }
 
-fn join_chat_room(tcp_stream: &mut TcpStreamWrapper) -> Result<UserToken> {
-    request_to_join_chat_room(tcp_stream)?;
+fn join_chat_room(
+    tcp_stream: &mut TcpStreamWrapper,
+    room_name: &ChatRoomName,
+) -> Result<UserToken> {
+    request_to_join_chat_room(tcp_stream, room_name)?;
 
     let receiving_request_response =
         TcpChatRoomPacket::from_bytes(&tcp_stream.read(TcpChatRoomPacket::MAX_BYTES)?)?;
@@ -145,9 +146,10 @@ fn join_chat_room(tcp_stream: &mut TcpStreamWrapper) -> Result<UserToken> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let mut tcp_stream = TcpStreamWrapper::new(TcpStream::connect(shared::SERVER_ADDR)?);
+    let mut tcp_stream = TcpStreamWrapper::new(TcpStream::connect(shared::SERVER_ADDR_TCP)?);
+    let room_name = ChatRoomName::new(prompt(prompts::ROOM_NAME_PROMPT))?;
 
-    let user_token = join_chat_room(&mut tcp_stream).map_err(|join_chat_room_err| {
+    let user_token = join_chat_room(&mut tcp_stream, &room_name).map_err(|join_chat_room_err| {
         println!("Failed to join chat room: {:?}", join_chat_room_err);
 
         let _ = tcp_stream.shutdown();
@@ -157,9 +159,11 @@ async fn main() -> Result<()> {
 
     println!("User token: {:?}", user_token);
 
-    let local_addr = tcp_stream.local_addr()?;
-
-    let session = Arc::new(start_session()?);
+    let session = Arc::new(UserSession::new(
+        ClientSocket::new(tcp_stream.local_addr()?)?,
+        room_name,
+        user_token,
+    ));
 
     let send_session = session.clone();
     let receive_session = session.clone();
