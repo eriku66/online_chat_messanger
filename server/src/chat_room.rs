@@ -2,7 +2,7 @@ use crate::{user_session::UserSession, user_session_list::UserSessionList, UserT
 
 #[derive(Debug)]
 pub struct ChatRoom {
-    host_user_token: UserToken,
+    _host_user_token: UserToken,
     pub user_session_list: UserSessionList,
 }
 
@@ -12,7 +12,7 @@ impl ChatRoom {
         user_session_list.add_or_update(host_user_token.clone(), host_user_session);
 
         Self {
-            host_user_token,
+            _host_user_token: host_user_token,
             user_session_list,
         }
     }

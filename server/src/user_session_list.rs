@@ -49,7 +49,7 @@ impl UserSessionList {
         Ok(())
     }
 
-    pub fn cleanup(&mut self) {
+    pub fn _cleanup(&mut self) {
         self.list.retain(|_, user_session| {
             user_session.last_received_at.elapsed().as_secs() < SESSION_TIMEOUT_SECONDS
         });
