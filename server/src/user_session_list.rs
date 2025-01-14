@@ -1,10 +1,8 @@
 use super::user_session::UserSession;
 use anyhow::{anyhow, Result};
 use shared::{UserToken, SESSION_TIMEOUT_SECONDS};
-use std::{
-    collections::HashMap,
-    net::{SocketAddr, UdpSocket},
-};
+use std::{collections::HashMap, net::SocketAddr};
+use tokio::net::UdpSocket;
 
 #[derive(Debug, Default)]
 pub struct UserSessionList {
@@ -22,7 +20,7 @@ impl UserSessionList {
         self.list.insert(user_token, user_session);
     }
 
-    pub fn send_to_all(
+    pub async fn send_to_all(
         &self,
         socket: &UdpSocket,
         packet: &[u8],
@@ -43,7 +41,7 @@ impl UserSessionList {
             if user_session.socket_addr == sender_socket_addr {
                 continue;
             }
-            socket.send_to(packet, sender_socket_addr)?;
+            socket.send_to(packet, sender_socket_addr).await?;
         }
 
         Ok(())

@@ -7,27 +7,30 @@ use anyhow::{Context, Result};
 use chat_room_service::ChatRoomService;
 use shared::{
     operation_payload::OperationPayloadBuilder, ResponseStatus, TcpChatRoomPacket,
-    TcpListenerWrapper, UdpMessagePacket, UserToken,
+    TokioTcpListenerWrapper, UdpMessagePacket, UserToken,
 };
-use std::{
+use std::sync::Arc;
+use tokio::{
     net::{TcpListener, UdpSocket},
-    sync::Arc,
+    sync::Mutex,
 };
-use tokio::sync::Mutex;
 
-async fn handle_udp(chat_room_service: &ChatRoomService) -> Result<()> {
-    let socket = UdpSocket::bind(shared::SERVER_ADDR_UDP)?;
+async fn handle_udp(chat_room_service: Arc<Mutex<ChatRoomService>>) -> Result<()> {
+    let socket = UdpSocket::bind(shared::SERVER_ADDR_UDP).await?;
 
     loop {
         let mut buf = [0; shared::MAX_MESSAGE_SIZE_BYTES];
         let (received, client_socket_addr) = socket
             .recv_from(&mut buf)
+            .await
             .context("Failed to receive message")?;
         println!("Client socket address: {:?}", client_socket_addr);
         let udp_message_packet = UdpMessagePacket::from_packet(&buf[..received])?;
         println!("Packet: {:?}", udp_message_packet);
 
         chat_room_service
+            .lock()
+            .await
             .chat_room_list
             .get(&udp_message_packet.chat_room_name)?
             .user_session_list
@@ -36,74 +39,82 @@ async fn handle_udp(chat_room_service: &ChatRoomService) -> Result<()> {
                 udp_message_packet.message.value().as_bytes(),
                 udp_message_packet.user_token,
                 client_socket_addr,
-            )?;
+            )
+            .await?;
     }
 }
 
-async fn handle_tcp(chat_room_service: &mut ChatRoomService) -> Result<()> {
-    let tcp_listener = TcpListenerWrapper::new(TcpListener::bind(shared::SERVER_ADDR_TCP)?);
+async fn handle_tcp(chat_room_service: Arc<Mutex<ChatRoomService>>) -> Result<()> {
+    let tcp_listener =
+        TokioTcpListenerWrapper::new(TcpListener::bind(shared::SERVER_ADDR_TCP).await?);
 
     loop {
-        let (mut tcp_stream, socket_addr) = tcp_listener.accept()?;
+        let (mut tcp_stream, socket_addr) = tcp_listener.accept().await?;
 
         let request_to_join_packet =
-            TcpChatRoomPacket::from_bytes(&tcp_stream.read(TcpChatRoomPacket::MAX_BYTES)?)?;
+            TcpChatRoomPacket::from_bytes(&tcp_stream.read(TcpChatRoomPacket::MAX_BYTES).await?)?;
 
         println!("Request to join packet: {:?}", request_to_join_packet);
 
-        tcp_stream.write_all(
-            &TcpChatRoomPacket::new(
-                request_to_join_packet.room_name.clone(),
-                request_to_join_packet.operation_type,
-                shared::OperationState::ReceiveResponse,
-                Some(
-                    OperationPayloadBuilder::default()
-                        .response_status(ResponseStatus::Ok)
-                        .build()?,
-                ),
+        tcp_stream
+            .write_all(
+                &TcpChatRoomPacket::new(
+                    request_to_join_packet.room_name.clone(),
+                    request_to_join_packet.operation_type,
+                    shared::OperationState::ReceiveResponse,
+                    Some(
+                        OperationPayloadBuilder::default()
+                            .response_status(ResponseStatus::Ok)
+                            .build()?,
+                    ),
+                )
+                .generate_bytes(),
             )
-            .generate_bytes(),
-        )?;
+            .await?;
 
         let user_token = UserToken::default();
 
-        if let Err(error) = chat_room_service.handle_request_to_join_packet(
-            &request_to_join_packet,
-            user_token.clone(),
-            socket_addr,
-        ) {
-            tcp_stream.write_all(
+        if let Err(error) = chat_room_service
+            .lock()
+            .await
+            .handle_request_to_join_packet(&request_to_join_packet, user_token.clone(), socket_addr)
+        {
+            tcp_stream
+                .write_all(
+                    &TcpChatRoomPacket::new(
+                        request_to_join_packet.room_name,
+                        request_to_join_packet.operation_type,
+                        shared::OperationState::CompleteResponse,
+                        Some(
+                            OperationPayloadBuilder::default()
+                                .response_status(ResponseStatus::BadRequest)
+                                .message(error.to_string())
+                                .build()?,
+                        ),
+                    )
+                    .generate_bytes(),
+                )
+                .await?;
+
+            continue;
+        };
+
+        tcp_stream
+            .write_all(
                 &TcpChatRoomPacket::new(
                     request_to_join_packet.room_name,
                     request_to_join_packet.operation_type,
                     shared::OperationState::CompleteResponse,
                     Some(
                         OperationPayloadBuilder::default()
-                            .response_status(ResponseStatus::BadRequest)
-                            .message(error.to_string())
+                            .response_status(ResponseStatus::Ok)
+                            .user_token(user_token)
                             .build()?,
                     ),
                 )
                 .generate_bytes(),
-            )?;
-
-            continue;
-        };
-
-        tcp_stream.write_all(
-            &TcpChatRoomPacket::new(
-                request_to_join_packet.room_name,
-                request_to_join_packet.operation_type,
-                shared::OperationState::CompleteResponse,
-                Some(
-                    OperationPayloadBuilder::default()
-                        .response_status(ResponseStatus::Ok)
-                        .user_token(user_token)
-                        .build()?,
-                ),
             )
-            .generate_bytes(),
-        )?;
+            .await?;
     }
 }
 
@@ -113,23 +124,17 @@ async fn start_server() -> Result<()> {
     let chat_room_service_clone = Arc::clone(&chat_room_service);
 
     let handle_tcp_task = tokio::spawn(async move {
-        let mut tcp_chat_room_service = chat_room_service_clone.lock().await;
-        handle_tcp(&mut tcp_chat_room_service)
-            .await
-            .unwrap_or_else(|err| {
-                println!("Failed to handle TCP: {:?}", err);
-            });
+        if let Err(error) = handle_tcp(chat_room_service_clone).await {
+            println!("Failed to handle TCP: {:?}", error);
+        }
     });
 
     let chat_room_service_clone = Arc::clone(&chat_room_service);
 
     let handle_udp_task = tokio::spawn(async move {
-        let udp_chat_room_service = chat_room_service_clone.lock().await;
-        handle_udp(&udp_chat_room_service)
-            .await
-            .unwrap_or_else(|err| {
-                println!("Failed to handle UDP: {:?}", err);
-            });
+        if let Err(error) = handle_udp(chat_room_service_clone).await {
+            println!("Failed to handle UDP: {:?}", error);
+        }
     });
 
     tokio::try_join!(handle_tcp_task, handle_udp_task)?;

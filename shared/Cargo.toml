@@ -15,3 +15,4 @@ uuid = { version = "1.11.0", features = [
     "macro-diagnostics",
 ] }
 derive_builder = "0.20.0"
+tokio = { version = "1.0", features = ["full"] }
