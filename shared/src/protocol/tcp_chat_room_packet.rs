@@ -32,10 +32,10 @@ impl TcpChatRoomPacket {
     pub fn generate_bytes(&self) -> Vec<u8> {
         let mut packet = Vec::new();
 
-        packet.push(self.room_name.length() as u8);
+        packet.push(self.room_name.length as u8);
         packet.push(self.operation_type as u8);
         packet.push(self.state as u8);
-        packet.extend_from_slice(self.room_name.value().as_bytes());
+        packet.extend_from_slice(self.room_name.value.as_bytes());
         packet.extend_from_slice(
             serde_json::to_string(&self.operation_payload)
                 .unwrap()

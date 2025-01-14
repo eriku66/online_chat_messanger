@@ -2,8 +2,8 @@ use anyhow::{anyhow, Result};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ChatRoomName {
-    length: usize,
-    value: String,
+    pub value: String,
+    pub length: usize,
 }
 
 impl ChatRoomName {
@@ -25,13 +25,5 @@ impl ChatRoomName {
             length: trimmed_value.len(),
             value: trimmed_value.to_string(),
         })
-    }
-
-    pub fn length(&self) -> usize {
-        self.length
-    }
-
-    pub fn value(&self) -> &str {
-        &self.value
     }
 }

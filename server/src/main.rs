@@ -19,7 +19,7 @@ async fn handle_udp(chat_room_service: Arc<Mutex<ChatRoomService>>) -> Result<()
     let socket = UdpSocket::bind(shared::SERVER_ADDR_UDP).await?;
 
     loop {
-        let mut buf = [0; shared::MAX_MESSAGE_SIZE_BYTES];
+        let mut buf = [0; UdpMessagePacket::MAX_TOTAL_BYTES];
         let (received, client_socket_addr) = socket
             .recv_from(&mut buf)
             .await
@@ -36,7 +36,7 @@ async fn handle_udp(chat_room_service: Arc<Mutex<ChatRoomService>>) -> Result<()
             .user_session_list
             .send_to_all(
                 &socket,
-                udp_message_packet.message.value().as_bytes(),
+                udp_message_packet.message.value.as_bytes(),
                 udp_message_packet.user_token,
                 client_socket_addr,
             )

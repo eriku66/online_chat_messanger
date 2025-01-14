@@ -22,7 +22,7 @@ fn prompt(message_prompt: &str) -> String {
 }
 
 async fn receive_message(session: &UserSession) -> Result<String> {
-    let mut buf = [0; shared::MAX_MESSAGE_SIZE_BYTES];
+    let mut buf = [0; UdpMessagePacket::MAX_TOTAL_BYTES];
 
     let (received, _) = session.client_socket.socket.recv_from(&mut buf).await?;
 
@@ -156,8 +156,6 @@ async fn main() -> Result<()> {
 
         join_chat_room_err
     })?;
-
-    println!("User token: {:?}", user_token);
 
     let session = Arc::new(UserSession::new(
         ClientSocket::new(tcp_stream.local_addr()?)?,

@@ -1,20 +1,21 @@
-use crate::MAX_MESSAGE_SIZE_BYTES;
 use anyhow::{anyhow, Result};
 
 #[derive(Debug)]
 pub struct Message {
-    length: usize,
-    value: String,
+    pub value: String,
+    pub length: usize,
 }
 
 impl Message {
+    pub const MAX_LENGTH: usize = 4096;
+
     pub fn new(trimmed_value: String) -> Result<Self> {
         let trimmed_value = trimmed_value.trim();
 
-        if trimmed_value.as_bytes().len() > MAX_MESSAGE_SIZE_BYTES {
+        if trimmed_value.as_bytes().len() > Self::MAX_LENGTH {
             return Err(anyhow!(
                 "Message must be less than or equal to {} bytes",
-                MAX_MESSAGE_SIZE_BYTES
+                Self::MAX_LENGTH
             ));
         }
 
@@ -22,13 +23,5 @@ impl Message {
             length: trimmed_value.len(),
             value: trimmed_value.to_string(),
         })
-    }
-
-    pub fn length(&self) -> usize {
-        self.length
-    }
-
-    pub fn value(&self) -> &str {
-        &self.value
     }
 }

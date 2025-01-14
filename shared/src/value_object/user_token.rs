@@ -3,23 +3,27 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct UserToken {
-    value: String,
+    pub value: String,
+    pub length: usize,
 }
 
 impl Default for UserToken {
     fn default() -> Self {
-        Self {
-            value: Uuid::new_v4().to_string(),
-        }
+        let value = Uuid::new_v4().to_string();
+        let length = value.len();
+
+        Self { value, length }
     }
 }
 
 impl UserToken {
-    pub fn new(value: String) -> Self {
-        Self { value }
-    }
+    pub const HEADER_LENGTH_BYTES: usize = 1;
+    pub const LENGTH: usize = 36;
+    pub const TOTAL_BYTES: usize = Self::HEADER_LENGTH_BYTES + Self::LENGTH;
 
-    pub fn value(&self) -> &str {
-        &self.value
+    pub fn new(value: String) -> Self {
+        let length = value.len();
+
+        Self { value, length }
     }
 }
