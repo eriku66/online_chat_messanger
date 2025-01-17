@@ -38,10 +38,12 @@ impl UserSessionList {
         }
 
         for (_, user_session) in self.list.iter() {
+            println!("Sending to {:?}", user_session);
             if user_session.socket_addr == sender_socket_addr {
                 continue;
             }
-            socket.send_to(packet, sender_socket_addr).await?;
+
+            socket.send_to(packet, user_session.socket_addr).await?;
         }
 
         Ok(())
