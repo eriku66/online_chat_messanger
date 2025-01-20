@@ -3,7 +3,6 @@ use std::net::{SocketAddr, UdpSocket};
 use anyhow::Result;
 use tokio::net::UdpSocket as TokioUdpSocket;
 
-
 #[derive(Debug)]
 pub struct ClientSocket {
     pub socket: TokioUdpSocket,

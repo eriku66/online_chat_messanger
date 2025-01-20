@@ -1,4 +1,5 @@
 mod client_socket;
+mod consts;
 mod prompts;
 mod user_session;
 
@@ -10,6 +11,7 @@ use shared::{
     UserToken,
 };
 use std::{net::TcpStream, sync::Arc};
+use tokio::select;
 use user_session::UserSession;
 
 fn prompt(message_prompt: &str) -> String {
@@ -29,9 +31,7 @@ async fn receive_message(session: &UserSession) -> Result<String> {
     Ok(String::from_utf8_lossy(&buf[..received]).to_string())
 }
 
-async fn send_message(session: &UserSession) -> Result<()> {
-    let message = Message::new(prompt(prompts::MESSAGE_PROMPT))?;
-
+async fn send_message(session: &UserSession, message: Message) -> Result<()> {
     let message_packet = UdpMessagePacket::new(
         session.chat_room_name.clone(),
         session.user_token.clone(),
@@ -44,6 +44,19 @@ async fn send_message(session: &UserSession) -> Result<()> {
         .await?;
 
     Ok(())
+}
+
+async fn send_task(session: Arc<UserSession>) -> Result<()> {
+    loop {
+        let message = Message::new(prompt(prompts::MESSAGE_PROMPT))?;
+
+        if message.value == consts::EXIT_MESSAGE {
+            println!("Exiting chat room");
+            return Ok(());
+        }
+
+        send_message(&session, message).await?;
+    }
 }
 
 fn extract_user_token(response_for_task_complete: TcpChatRoomPacket) -> UserToken {
@@ -144,8 +157,7 @@ fn join_chat_room(
     Ok(extract_user_token(task_completion_response))
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+async fn execute_chat_tasks() -> Result<()> {
     let mut tcp_stream = TcpStreamWrapper::new(TcpStream::connect(shared::SERVER_ADDR_TCP)?);
     let room_name = ChatRoomName::new(prompt(prompts::ROOM_NAME_PROMPT))?;
 
@@ -167,11 +179,9 @@ async fn main() -> Result<()> {
     let receive_session = session.clone();
 
     let send_task = tokio::spawn(async move {
-        loop {
-            send_message(&send_session).await.unwrap_or_else(|err| {
-                println!("Failed to send message: {:?}", err);
-            });
-        }
+        send_task(send_session).await.unwrap_or_else(|err| {
+            println!("Failed to send message: {:?}", err);
+        });
     });
 
     let receive_task = tokio::spawn(async move {
@@ -188,7 +198,19 @@ async fn main() -> Result<()> {
         }
     });
 
-    tokio::try_join!(receive_task, send_task)?;
+    select! {
+        _ = send_task => {}
+        _ = receive_task => {}
+    }
 
     Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    loop {
+        execute_chat_tasks().await.unwrap_or_else(|err| {
+            println!("Task failed: {:?}", err);
+        });
+    }
 }
