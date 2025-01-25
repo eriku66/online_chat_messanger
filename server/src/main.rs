@@ -25,7 +25,13 @@ async fn handle_udp(chat_room_service: Arc<Mutex<ChatRoomService>>) -> Result<()
             .await
             .context("Failed to receive message")?;
         println!("Client socket address: {:?}", client_socket_addr);
-        let udp_message_packet = UdpMessagePacket::from_packet(&buf[..received])?;
+        let udp_message_packet = match UdpMessagePacket::from_packet(&buf[..received]) {
+            Ok(packet) => packet,
+            Err(error) => {
+                println!("Failed to parse UDP message packet: {:?}", error);
+                continue;
+            }
+        };
         println!("Packet: {:?}", udp_message_packet);
 
         chat_room_service
@@ -51,8 +57,15 @@ async fn handle_tcp(chat_room_service: Arc<Mutex<ChatRoomService>>) -> Result<()
     loop {
         let (mut tcp_stream, socket_addr) = tcp_listener.accept().await?;
 
-        let request_to_join_packet =
-            TcpChatRoomPacket::from_bytes(&tcp_stream.read(TcpChatRoomPacket::MAX_BYTES).await?)?;
+        let request_to_join_packet = match TcpChatRoomPacket::from_bytes(
+            &tcp_stream.read(TcpChatRoomPacket::MAX_BYTES).await?,
+        ) {
+            Ok(packet) => packet,
+            Err(error) => {
+                println!("Failed to parse request to join packet: {:?}", error);
+                continue;
+            }
+        };
 
         println!("Request to join packet: {:?}", request_to_join_packet);
 
