@@ -14,13 +14,17 @@ use std::{net::TcpStream, sync::Arc};
 use tokio::{select, task::JoinHandle};
 use user_session::UserSession;
 
-fn prompt(message_prompt: &str) -> String {
+fn prompt(message_prompt: &str) -> Result<String> {
     println!("{}", message_prompt);
 
     let mut message = String::new();
-    std::io::stdin().read_line(&mut message).unwrap();
+    std::io::stdin().read_line(&mut message)?;
 
-    message
+    if message.is_empty() {
+        return Err(anyhow!("Empty input"));
+    }
+
+    Ok(message)
 }
 
 async fn receive_message(session: &UserSession) -> Result<String> {
@@ -48,7 +52,7 @@ async fn send_message(session: &UserSession, message: Message) -> Result<()> {
 
 async fn send_task(session: Arc<UserSession>) -> Result<()> {
     loop {
-        let message = Message::new(prompt(prompts::MESSAGE_PROMPT))?;
+        let message = Message::new(prompt(prompts::MESSAGE_PROMPT)?)?;
 
         if message.value == consts::EXIT_MESSAGE {
             println!("Exiting chat room");
@@ -114,13 +118,13 @@ fn request_to_join_chat_room(
     room_name: &ChatRoomName,
 ) -> Result<()> {
     let operation_type = OperationType::try_from_u8(
-        prompt(prompts::CREATE_OR_JOIN_PROMPT)
+        prompt(prompts::CREATE_OR_JOIN_PROMPT)?
             .trim()
             .parse::<u8>()
             .context("Input must be a number")?,
     )
     .context("Invalid operation type")?;
-    let user_name = UserName::new(prompt(prompts::USER_NAME_PROMPT))?;
+    let user_name = UserName::new(prompt(prompts::USER_NAME_PROMPT)?)?;
 
     let chat_room_packet = TcpChatRoomPacket::new(
         room_name.clone(),
@@ -159,7 +163,7 @@ fn join_chat_room(
 
 async fn execute_chat_tasks() -> Result<()> {
     let mut tcp_stream = TcpStreamWrapper::new(TcpStream::connect(shared::SERVER_ADDR_TCP)?);
-    let room_name = ChatRoomName::new(prompt(prompts::ROOM_NAME_PROMPT))?;
+    let room_name = ChatRoomName::new(prompt(prompts::ROOM_NAME_PROMPT)?)?;
 
     let user_token = join_chat_room(&mut tcp_stream, &room_name).map_err(|join_chat_room_err| {
         println!("Failed to join chat room: {:?}", join_chat_room_err);
