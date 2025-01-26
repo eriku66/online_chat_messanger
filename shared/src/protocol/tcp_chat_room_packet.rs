@@ -1,4 +1,4 @@
-use crate::{ChatRoomName, OperationPayload, OperationState, OperationType};
+use crate::{util::SliceUtil, ChatRoomName, OperationPayload, OperationState, OperationType};
 use anyhow::Result;
 
 #[derive(Debug)]
@@ -46,10 +46,19 @@ impl TcpChatRoomPacket {
     }
 
     pub fn from_bytes(packet: &[u8]) -> Result<Self> {
-        let room_name_length = u8::from_be_bytes([packet[0]]) as usize;
-        let operation_type = OperationType::try_from_u8(u8::from_be_bytes([packet[1]]))?;
-        let state = OperationState::try_from_u8(u8::from_be_bytes([packet[2]]))?;
-        let body = String::from_utf8_lossy(&packet[3..]).to_string();
+        let room_name_length =
+            u8::from_be_bytes([SliceUtil::try_get_at_index(packet, 0)?]) as usize;
+        let operation_type =
+            OperationType::try_from_u8(u8::from_be_bytes([SliceUtil::try_get_at_index(
+                packet, 1,
+            )?]))?;
+        let state = OperationState::try_from_u8(u8::from_be_bytes([SliceUtil::try_get_at_index(
+            packet, 2,
+        )?]))?;
+
+        let packet_body = SliceUtil::try_get_range(packet, 3..)?;
+
+        let body = String::from_utf8_lossy(packet_body).to_string();
 
         let (room_name, operation_payload) = body.split_at(room_name_length);
 

@@ -32,11 +32,20 @@ impl UdpMessagePacket {
     }
 
     pub fn from_packet(packet: &[u8]) -> Result<Self> {
-        let chat_room_name_length = u8::from_be_bytes([packet[0]]) as usize;
-        let token_size_length = u8::from_be_bytes([packet[1]]) as usize;
+        let chat_room_name_length =
+            u8::from_be_bytes([SliceUtil::try_get_at_index(packet, 0)?]) as usize;
+        let token_size_length =
+            u8::from_be_bytes([SliceUtil::try_get_at_index(packet, 1)?]) as usize;
 
-        let splitted_packet =
-            SliceUtil::split_slice(&packet[2..], &[chat_room_name_length, token_size_length]);
+        let packet_body = SliceUtil::try_get_range(packet, 2..)?;
+
+        let splitted_packet = match SliceUtil::split_slice(
+            packet_body,
+            &[chat_room_name_length, token_size_length],
+        ) {
+            Ok(splitted_packet) => splitted_packet,
+            Err(error) => return Err(error),
+        };
 
         let chat_room_name_str = String::from_utf8_lossy(&splitted_packet[0]).to_string();
 
